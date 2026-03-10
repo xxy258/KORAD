@@ -508,8 +508,8 @@
 
                         </div>
                         <div class="input-group">
-                            <input type="number" id="voltageInput" min="0" max="25" step="0.01" value="13.50"
-                                oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+                            <input type="text" id="voltageInput" value="13.50"
+                                oninput="formatVoltageInput(this)">
                             <button id="setVoltageBtn">设定电压</button>
                         </div>
                     </div>
@@ -527,8 +527,8 @@
                             <input type="range" id="currentSlider" min="0" max="10" step="0.01" value="10.00">
                         </div>
                         <div class="input-group">
-                            <input type="number" id="currentInput" min="0" max="10" step="0.01" value="10.00"
-                                oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+                            <input type="text" id="currentInput" value="10.00"
+                                oninput="formatCurrentInput(this)">
                             <button id="setCurrentBtn">设定电流</button>
                         </div>
                     </div>
@@ -1425,7 +1425,9 @@
             // 获取循环配置
             cycleStartStep = parseInt(cycleStartStepInput.value) || 1;
             cycleEndStep = parseInt(cycleEndStepInput.value) || 5;
-            cycleTotal = parseInt(cycleCountInput.value) || 1;
+            // 特殊处理循环次数：0表示无限循环，不能使用||操作符
+            const cycleCountValue = parseInt(cycleCountInput.value);
+            cycleTotal = isNaN(cycleCountValue) ? 1 : cycleCountValue;
 
             // 验证循环配置
             if (cycleStartStep < 1 || cycleStartStep > 50) {
@@ -1491,6 +1493,7 @@
             if (stepIndex >= validSteps.length) {
                 currentCycle++;
                 // 判断是否继续循环
+                // cycleTotal为0表示无限循环，否则检查是否达到指定循环次数
                 if (cycleTotal === 0 || currentCycle < cycleTotal) {
                     // 继续下一轮循环
                     programStatus.textContent = `状态：运行中（循环${currentCycle + 1}/${cycleTotal || '无限'} | 步骤范围${cycleStartStep}-${cycleEndStep}）`;
@@ -1629,6 +1632,88 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // 电压输入框格式化函数
+        function formatVoltageInput(input) {
+            // 获取当前光标位置
+            const cursorPos = input.selectionStart;
+            
+            // 只允许数字和小数点
+            let value = input.value.replace(/[^0-9.]/g, '');
+            
+            // 确保只有一个小数点
+            const decimalIndex = value.indexOf('.');
+            if (decimalIndex !== -1) {
+                value = value.substring(0, decimalIndex + 1) + value.substring(decimalIndex + 1).replace(/\./g, '');
+            }
+            
+            // 限制小数点后最多2位
+            if (decimalIndex !== -1) {
+                const parts = value.split('.');
+                if (parts[1].length > 2) {
+                    parts[1] = parts[1].substring(0, 2);
+                    value = parts.join('.');
+                }
+            }
+            
+            // 更新输入框值
+            input.value = value;
+            
+            // 恢复光标位置
+            setTimeout(() => {
+                input.setSelectionRange(cursorPos, cursorPos);
+            }, 0);
+            
+            // 同步滑块和显示值
+            if (value) {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    voltageSlider.value = Math.max(0, Math.min(25, numValue));
+                    voltageValue.textContent = numValue.toFixed(2) + 'V';
+                }
+            }
+        }
+
+        // 电流输入框格式化函数
+        function formatCurrentInput(input) {
+            // 获取当前光标位置
+            const cursorPos = input.selectionStart;
+            
+            // 只允许数字和小数点
+            let value = input.value.replace(/[^0-9.]/g, '');
+            
+            // 确保只有一个小数点
+            const decimalIndex = value.indexOf('.');
+            if (decimalIndex !== -1) {
+                value = value.substring(0, decimalIndex + 1) + value.substring(decimalIndex + 1).replace(/\./g, '');
+            }
+            
+            // 限制小数点后最多2位
+            if (decimalIndex !== -1) {
+                const parts = value.split('.');
+                if (parts[1].length > 2) {
+                    parts[1] = parts[1].substring(0, 2);
+                    value = parts.join('.');
+                }
+            }
+            
+            // 更新输入框值
+            input.value = value;
+            
+            // 恢复光标位置
+            setTimeout(() => {
+                input.setSelectionRange(cursorPos, cursorPos);
+            }, 0);
+            
+            // 同步滑块和显示值
+            if (value) {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    currentSlider.value = Math.max(0, Math.min(10, numValue));
+                    currentValue.textContent = numValue.toFixed(2) + 'A';
+                }
+            }
         }
 
         // 初始化事件监听器
